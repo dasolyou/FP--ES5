@@ -194,12 +194,16 @@ sub10(5);
   // 2. _get 만들어 좀 더 간단하게 하기
   // 객체 안에 있는 값를 안전하게 참조
 function _get(obj, key) {
-  return obj == null ? undefined : obj[key];
+  return obj == null ? undefined : obj[key]; // 값이 없을 때 오류나지 않고 안전하게 실행 
 }
+var _get = _curryr(function(obj, key) {
+  return obj == null ? undefined : obj[key]; // 값이 없을 때 오류나지 않고 안전하게 실행 
+});
 var user1 = users[0];
 user1.name;
 _get(user1, 'name');
-_get(users[10], 'name')
+// console.log(users[10].name); //error
+_get(users[10], 'name'); 
 //?
 
 
