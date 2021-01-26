@@ -1,3 +1,49 @@
+function _pipe() {
+  var fns = arguments; // arg로 들어오는 함수들의 모음
+  return function(arg) {
+    return _reduce(fns, function(arg, fn) { // 모든 함수를 돌면서(fns) n번째 함수(fn)에 인자를 적용한 결과를 리턴하면 그 결과는 다시 arg가 되고 다시 fn에 적용하고.... 반복
+      return fn(arg);
+    }, arg);
+  }
+}
+
+function _go(arg) { // 첫번째 인자는 함수가 아닌 값
+  var fns = _rest(arguments); // arguments에서 첫번째 값을 제외하고 적용이 되야 함
+  return _pipe.apply(null, fns)(arg);
+}
+
+var slice = Array.prototype.slice;
+function _rest(list, num) {
+  return slice.call(list, num || 1);
+}
+
+function _reduce(list, iter, memo) { // 두번째 인자로 받은 함수를 연속적(재귀적)으로 호출해주면서 값을 축약해(만들어)나가는 함수
+  if (arguments.length == 2) { // 인자를 두개만 받아도 정상동작하게
+    memo = list[0];
+    list = _rest(list);
+  }
+  _each(list, function(val) {
+    memo = iter(memo, val);    
+  });
+  return memo;
+}
+
+function _curry(fn) {
+  return function(a, b) {
+    return arguments.length == 2 ? fn(a, b) : function(b) { return fn(a, b); };
+  }
+}
+
+function _curryr(fn) { // 오른쪽 인자부터 받음
+  return function(a, b) { 
+    return arguments.length == 2 ? fn(a, b) : function(b) { return fn(b, a); };
+  }
+}
+
+var _get = _curryr(function(obj, key) {
+  return obj == null ? undefined : obj[key]; // 값이 없을 때 오류나지 않고 안전하게 실행 
+});
+
 function _filter(list, predi) { 
   var new_list = [];
   _each(list, function(val) {
@@ -16,13 +62,31 @@ function _map(list, mappper) {
   return new_list;
 }
 
-function _each(list, iter) {
-  for (var i = 0; i < list.length; i++) {
-    iter(list[i]);
-  }
-  return list;
+function _is_object(obj) {
+  return typeof obj == 'object' && !!obj;
+}
+function _keys(obj) {
+  return _is_object(obj) ? Object.keys(obj) : [];
 }
 
+var _length = _get('length'); // get 안에 null인 경우 undifined를 리턴하는 부분이 포함됐기 때문에 에러 잡는데 사용
+
+// function _each(list, iter) {
+//   for (var i = 0, len = _length(list); i < len; i++) {
+//     iter(list[i]);
+//   }
+//   return list;
+// }
+function _each(list, iter) { // array, key-value쌍 모두 잘 동작하도록
+  var keys = _keys(list);
+  for (var i = 0, len = keys.length; i < len; i++) {
+    iter(list[keys[i]], keys[i]);
+  }
+  return list;
+}  
+
+var _map = _curryr(_map),
+  _filter = _curryr(_filter);
 //////////////////////////////////////////////////////
 
 var users = [
@@ -157,16 +221,16 @@ _map(
 //     }
 //   }
 // }
-function _curry(fn) {
-  return function(a, b) {
-    return arguments.length == 2 ? fn(a, b) : function(b) { return fn(a, b); };
-  }
-}
-function _curryr(fn) { // 오른쪽 인자부터 받음
-  return function(a, b) { 
-    return arguments.length == 2 ? fn(a, b) : function(b) { return fn(b, a); };
-  }
-}
+// function _curry(fn) {
+//   return function(a, b) {
+//     return arguments.length == 2 ? fn(a, b) : function(b) { return fn(a, b); };
+//   }
+// }
+// function _curryr(fn) { // 오른쪽 인자부터 받음
+//   return function(a, b) { 
+//     return arguments.length == 2 ? fn(a, b) : function(b) { return fn(b, a); };
+//   }
+// }
 
 var add = function(a, b) {
   return a + b;
@@ -196,17 +260,214 @@ sub10(5);
 function _get(obj, key) {
   return obj == null ? undefined : obj[key]; // 값이 없을 때 오류나지 않고 안전하게 실행 
 }
-var _get = _curryr(function(obj, key) {
-  return obj == null ? undefined : obj[key]; // 값이 없을 때 오류나지 않고 안전하게 실행 
-});
 var user1 = users[0];
 user1.name;
 _get(user1, 'name');
 // console.log(users[10].name); //error
 _get(users[10], 'name'); 
+
+
+// var _get = _curryr(function(obj, key) {
+//   return obj == null ? undefined : obj[key]; // 값이 없을 때 오류나지 않고 안전하게 실행 
+// });
+_get('name')(user1);
+var get_name = _get('name');
+get_name(user1);
+
+_map(
+  _filter(users, function(user) { return user.age >= 30; }),
+  _get('name') // obj를 넣지 않아도, key값만 있어도 됨
+  // function(user) { return user.name; }
+)
+//?
+_map(
+  _filter(users, function(user) { return user.age < 30; }),
+  _get('age')
+  // function(user) { return user.age; }
+)
+//?
+
+// 5. _reduce 만들기
+// 원래 들어온 자료를 축약해서 다른 형태의 자료로 리턴할 때 사용
+// function _reduce(list, iter, memo) {
+//   iter(iter(iter(0, 1), 2), 3);  
+// }
+// _reduce([1, 2, 3], add, 0);
+// memo = add(0, 1);
+// memo = add(memo, 2);
+// memo = add(memo, 3);
+// return memo;
+// add(add(add(0, 1), 2), 3);
+
+// var slice = Array.prototype.slice;
+// function _rest(list, num) {
+//   return slice.call(list, num || 1);
+// }
+
+// function _reduce(list, iter, memo) { // 두번째 인자로 받은 함수를 연속적(재귀적)으로 호출해주면서 값을 축약해(만들어)나가는 함수
+//   if (arguments.length == 2) { // 인자를 두개만 받아도 정상동작하게
+//     memo = list[0];
+//     list = _rest(list);
+//   }
+//   _each(list, function(val) {
+//     memo = iter(memo, val);    
+//   });
+//   return memo;
+// }
+
+_reduce([1, 2, 3, 4], add, 0);
+_reduce([1, 2, 3, 4], add);
+
+//?
+
+// 5. 파이프라인 만들기
+  // 1. _pipe
+  // 함수를 인자로 받아서 연속적으로 실행해줌
+  // 함수를 리턴하는 함수
+  // reduce보다 더 추상화된 버전
+// function _pipe() {
+//   var fns = arguments; // arg로 들어오는 함수들의 모음
+//   return function(arg) {
+//     return _reduce(fns, function(arg, fn) { // 모든 함수를 돌면서(fns) n번째 함수(fn)에 인자를 적용한 결과를 리턴하면 그 결과는 다시 arg가 되고 다시 fn에 적용하고.... 반복
+//       return fn(arg);
+//     }, arg);
+//   }
+// }
+
+var f1 = _pipe(
+  function(a) { return a + 1; }, // 1 + 1 
+  function(a) { return a * 2; }, // 2 * 2
+  function(a) { return a * a; } // 4 * 4
+)
+f1(1);
+
+  // 2. _go
+  // pipe의 즉시 실행 버전
+
+// function _go(arg) { // 첫번째 인자는 함수가 아닌 값
+//   var fns = _rest(arguments); // arguments에서 첫번째 값을 제외하고 적용이 되야 함
+//   return _pipe.apply(null, fns)(arg);
+// }
+_go( 1,
+  function(a) { return a + 1; }, 
+  function(a) { return a * 2; }, 
+  function(a) { return a * a; }, 
+  console.log
+)
+
+  // 3. users에 _go 적용
+
+// 첫번째
+// _map(
+//   _filter(users, function(user) { return user.age >= 30; }),
+//   _get('name') 
+// )
+// _map(
+//   _filter(users, function(user) { return user.age < 30; }),
+//   _get('age')
+// )
+
+// 두번째
+// _go(users,
+//   function(users) {
+//     return _filter(users, function(user) {
+//       return user.age >= 30;
+//     });
+//   },  
+//   function(users) {
+//     return _map(users, _get('name'));
+//   },
+//   console.log
+// )
+
+// 세번째
+_go(users,
+  _filter(function(user) { // filter에 인자로 받은 함수를 적용할 예정인 새로운 함수를 리턴하게 되고 filter는 인자를 하나만 받게되는데 위에서 받음
+    return user.age >= 30;
+  }),_map(_get('name')),
+  console.log
+);
+
+_go(users,
+  _filter(user => user.age < 30),
+  _map(_get('age')),
+  console.log
+)
+
+_map([1, 2, 3], function(val) { return val * 2; });
+_map(function(val) { return val * 2 })([1, 2, 3]);
+//?
+
+//?
+  // 4. 화살표 함수 간단히
+// var a = function(user) { return user.age >= 30 };
+// var a = user => user.age >= 30;
+
+// var add = function(a, b) { return a + b };
+// var add = (a, b) => a + b;
+// var add = (a, b) => {
+//   //
+//   return //
+// };
+// var add = (a, b) => ({val: a + b});
+
+
+
+// 6. _each의 외부 다형성 높이기
+  // 1. _each에 null 넣어도 에러 안나게
+_each(null, console.log);
+_go(null,
+  _filter(function(v) { return v % 2; }),
+  _map(function(v) { return v * v; }),
+  console.log
+)
+// 에러가 날 때 흘려보낼 수 있도록하는 전략을 취함 -> get의 삼항연산자 null인 경우 undifined 리턴
+
+  // 2. _keys 만들기
+  // 3. _keys에서도 _is_object인지 검사하여 null 에러 안나게
+// console.log( Object.keys({ name: 'ID', age: 33 }) );
+// console.log( Object.keys([1, 2, 3, 4]) );
+// console.log( Object.keys(10) ); // []
+// console.log( Object.keys(null) ); // error
+
+// function _is_object(obj) {
+//   return typeof obj == 'object' && !!obj;
+// }
+// function _keys(obj) {
+//   return _is_object(obj) ? Object.keys(obj) : [];
+// }
+
+console.log( _keys(10) ); // []
+console.log( _keys(null) ); // []
+
+  // 4. _each 외부 다형성 높이기
+_each({
+  13: 'ID',
+  19: 'HD',
+  29: 'YD'
+}, function(name) {
+  console.log(name);
+});
+_map({
+  13: 'ID',
+  19: 'HD',
+  29: 'YD'
+}, function(name) {
+  return name.toLowerCase();
+});
 //?
 
 
 
 
-// 5. _reduce 만들기
+
+
+
+
+
+
+
+
+
+
+
