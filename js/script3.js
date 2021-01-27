@@ -29,6 +29,8 @@ function _rest(list, num) {
   return slice.call(list, num || 1);
 }
 
+var _pairs = _map((val, key) => [key, val]);
+
 function _reduce(list, iter, memo) { 
   if (arguments.length == 2) { 
     memo = list[0];
@@ -81,8 +83,8 @@ var _compact = _filter(_identity);
 
 function _map(list, mappper) {
   var new_list = [];
-  _each(list, function(val) {
-    new_list.push(mappper(val));
+  _each(list, function(val, key) {
+    new_list.push(mappper(val, key));
   });
   return new_list;
 }
@@ -128,7 +130,59 @@ function _some(data, predi) {
 
 function _every(data, predi) {
   return _find_index(data, _negate(predi || _identity)) == -1;
-} 
+}
+
+function _min(data) {
+  return _reduce(data, function(a, b){
+    return a < b ? a : b;
+  });
+}
+
+function _max(data) {
+  return _reduce(data, function(a, b){
+    return a > b ? a : b;
+  });
+}
+
+function _min_by(data, iter) {
+  return _reduce(data, function(a, b){
+    return iter(a) < iter(b) ? a : b;
+  });
+}
+
+function _max_by(data, iter) {
+  return _reduce(data, function(a, b){
+    return iter(a) > iter(b) ? a : b;
+  });
+}
+
+function _push(obj, key, val) {
+  (obj[key] = obj[key] || []).push(val);
+  return obj;
+}
+
+var _group_by = _curryr(function(data, iter) {
+  return _reduce(data, function(grouped, val) {
+    return _push(grouped, iter(val), val);
+    // var key = iter(val);
+    // (grouped[key] = grouped[key] || []).push(val);
+    // return grouped;
+  }, {});
+});
+
+var _inc = function(count, key) {
+  count[key] ? count[key]++ : count[key] = 1;
+  return count;
+}
+
+var _count_by = _curryr(function(data, iter) {
+  return _reduce(data, function(count, val) {
+    return _inc(count, iter(val));
+    // var key = iter(val);
+    // count[key] ? count[key]++ : count[key] = 1;
+    // return count;
+  }, {});
+})
 
 var _length = _get('length');
 
@@ -320,33 +374,35 @@ console.log(
 // 배열의 각 값의 평가 순서와 관계없이
 // 단순히 a, b만 평가할래!!! 
 // 라는 사고로 접근... 
-function _min(data) {
-  return _reduce(data, function(a, b){
-    return a < b ? a : b;
-  });
-}
+// function _min(data) {
+//   return _reduce(data, function(a, b){
+//     return a < b ? a : b;
+//   });
+// }
 
-function _max(data) {
-  return _reduce(data, function(a, b){
-    return a > b ? a : b;
-  });
-}
+// function _max(data) {
+//   return _reduce(data, function(a, b){
+//     return a > b ? a : b;
+//   });
+// }
+
 _min([1, 2, 4, 10, 5, -4]);
 //?
 _max([1, 2, 4, 10, 5, -4]);
 //?
 
-function _min_by(data, iter) {
-  return _reduce(data, function(a, b){
-    return iter(a) < iter(b) ? a : b;
-  });
-}
+// function _min_by(data, iter) {
+//   return _reduce(data, function(a, b){
+//     return iter(a) < iter(b) ? a : b;
+//   });
+// }
 
-function _max_by(data, iter) {
-  return _reduce(data, function(a, b){
-    return iter(a) > iter(b) ? a : b;
-  });
-}
+// function _max_by(data, iter) {
+//   return _reduce(data, function(a, b){
+//     return iter(a) > iter(b) ? a : b;
+//   });
+// }
+
 var _min_by = _curryr(_min_by),
   _max_by = _curryr(_max_by);
 
@@ -381,10 +437,90 @@ _go(users,
 )
 
 //   2. group_by, push
+// 특정 조건에 대해서 객체로 그룹을 지어줌
+// {조건: [], 조건: [] ...}
+
+// function _push(obj, key, val) {
+//   (obj[key] = obj[key] || []).push(val);
+//   return obj;
+// }
+
+// var _group_by = _curryr(function(data, iter) {
+//   return _reduce(data, function(grouped, val) {
+//     return _push(grouped, iter(val), val);
+//     // var key = iter(val);
+//     // (grouped[key] = grouped[key] || []).push(val);
+//     // return grouped;
+//   }, {});
+// });
+
+_go(users,
+  // _group_by(function(user) { return user.age; }),
+  _group_by(_get('age')),
+  console.log  
+);
+
+_go(users,
+  _group_by(function(user) {
+    return user.age - user.age % 10;
+  }),
+  console.log  
+);
+
+var _head = function(list) {
+  return list[0];
+}
+
+_go(users,
+  _group_by(function(user) {
+    return user.name[0];
+  }),
+  console.log  
+);
+
+_go(users,
+  _group_by(_pipe(_get('name'), _head)),
+  console.log  
+);
+
 //   3. count_by, inc
+// 조건 key의 갯수를 세는..?
+
+// var _inc = function(count, key) {
+//   count[key] ? count[key]++ : count[key] = 1;
+//   return count;
+// }
+
+// var _count_by = _curryr(function(data, iter) {
+//   return _reduce(data, function(count, val) {
+//     return _inc(count, iter(val));
+//     // var key = iter(val);
+//     // count[key] ? count[key]++ : count[key] = 1;
+//     // return count;
+//   }, {});
+// })
+
+_count_by(users, function(user) {
+  return user.age - user.age % 10;
+});
+//?
 
 
+// 추가 //
+var _pairs = _map((val, key) => [key, val]);
+_pairs(users[0]);
+//?
 
+var _docucment_write = document.write.bind(document);
+_go(users,
+  _count_by(function(user) {
+    return user.age - user.age % 10;
+  }),
+  _map((count, key) => `<li>${key}대는 ${count}명 입니다.</li>`),
+  list => '<ul>' + list.join('') + '</ul>',
+  _docucment_write
+  // function(html) { document.write(html); }
+)
 
 
 
