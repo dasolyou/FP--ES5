@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>5. 실전코드조각-1</title>
+</head>
+<body>
+  <script src="./js/partial.js"></script>
+  <script src="./js/_js.js"></script>
+  <script>
+  var users = [
+    { id: 101, name: 'ID' },
+    { id: 102, name: 'BJ' },
+    { id: 103, name: 'PJ' },
+    { id: 104, name: 'HA' },
+    { id: 105, name: 'JE' },
+    { id: 106, name: 'JI' }
+  ];
+
+  var posts = [
+    { id: 201, body: '내용1', user_id: 101 },
+    { id: 202, body: '내용2', user_id: 102 },
+    { id: 203, body: '내용3', user_id: 103 },
+    { id: 204, body: '내용4', user_id: 102 },
+    { id: 205, body: '내용5', user_id: 101 },
+  ];
+
+  var comments = [
+    { id: 301, body: '댓글1', user_id: 105, post_id: 201 },
+    { id: 302, body: '댓글2', user_id: 104, post_id: 201 },
+    { id: 303, body: '댓글3', user_id: 104, post_id: 202 },
+    { id: 304, body: '댓글4', user_id: 105, post_id: 203 },
+    { id: 305, body: '댓글5', user_id: 106, post_id: 203 },
+    { id: 306, body: '댓글6', user_id: 106, post_id: 204 },
+    { id: 307, body: '댓글7', user_id: 102, post_id: 205 },
+    { id: 308, body: '댓글8', user_id: 103, post_id: 204 },
+    { id: 309, body: '댓글9', user_id: 103, post_id: 202 },
+    { id: 310, body: '댓글10', user_id: 105, post_id: 201 }
+  ];
+
+  // 1. 특정인의 posts의 모든 comments 거르기
+
+  // 첫번째
+  _.go(
+    _.filter(posts, function(post) { // posts 안에서 user_id가 101인 부분 골라냄
+    return post.user_id == 101;
+    }),
+    function(posts) { // posts안에 comment.post_id가 있는 부분 골라냄
+      return _.filter(comments, function(comment) {
+        return _.find(posts, function(post) {
+          return post.id == comment.post_id;
+        })
+      })
+    },
+    // console.log
+  )
+
+  // 두번째
+  // _.contains([배열], 값); // 배열 안에 값이 있으면 true, 없으면 false
+  _.go(
+    _.filter(posts, function(post) { // posts 안에서 user_id가 101인 부분 골라냄
+    return post.user_id == 101;
+    }),
+    _.map(function(post) {
+      return post.id
+    }),
+    function(post_ids) { // posts안에 comment.post_id가 있는 부분 골라냄
+      return _.filter(comments, function(comment) {
+        return _.contains(post_ids, comment.post_id);
+      })
+    },
+    // console.log
+  )
+
+  // 세번째
+  // _.contains([배열], 값); // 배열 안에 값이 있으면 true, 없으면 false
+  _.go(
+    _.where(posts, { user_id: 101 }),
+    _.pluck('id'),
+    function(post_ids) { // posts안에 comment.post_id가 있는 부분 골라냄
+      return _.filter(comments, function(comment) {
+        return _.contains(post_ids, comment.post_id);
+      })
+    },
+    // console.log
+  )
+
+  // 네번째
+  // 2번 문제와 중복되는 코드 정리
+  function posts_by(attr) {
+    return _.where(posts, attr);
+  }
+
+  var comments_by_posts = _.pipe(
+    _.pluck('id'),
+    function(post_ids) { // posts안에 comment.post_id가 있는 부분 골라냄
+      return _.filter(comments, function(comment) {
+        return _.contains(post_ids, comment.post_id);
+      })
+    },
+  )
+
+  var f1 = _.pipe( posts_by, comments_by_posts);
+
+  // _.go({ user_id: 101 },
+  //   f1,
+  //   // posts_by,
+  //   // comments_by_posts,
+  //   // console.log
+  // )
+  console.log(f1({ user_id: 101 }));
+
+  // 2. 특정인의 posts에 comments를 단 친구의 이름들 뽑기
+
+  // function user_names_by_comments() {
+  //   _.map(function(comment) {
+  //     return _.find(users, function(user) {
+  //       return user.id == comment.user_id;
+  //     }).name;
+  //   })
+  // }
+
+  var comments_to_user_names = _.map(function(comment) {
+    return _.find(users, function(user) {
+      return user.id == comment.user_id;
+    }).name;
+  }) // curry을 통해서 함수를 리턴하기 때문에 이렇게 써도 됨... 
+  
+
+  var f2 = _pipe(
+    f1, 
+    comments_to_user_names,
+    _.uniq,
+  );
+
+  console.log(f2({ user_id: 101 }));
+  // _.go(
+  //   posts_by({ user_id: 101 }),
+  //   comments_by_posts,
+  //   _.map(function(comment) {
+  //     return _.find(users, function(user) {
+  //       return user.id == comment.user_id;
+  //     }).name;
+  //   }),
+  //   _.uniq,
+  //   // console.log
+  // ) 
+
+  // 3. 특정인의 posts에 comments를 단 친구들 카운트 정보
+  var f3 = _.pipe(
+    f1,
+    comments_to_user_names,
+    _.count_by
+  );
+  console.log(f3({ user_id: 101 }));
+
+  // _.go({ user_id: 101 },
+  //   posts_by,
+  //   comments_by_posts,
+  //   _.map(function(comment) {
+  //     return _.find(users, function(user) {
+  //       return user.id == comment.user_id;
+  //     }).name;
+  //   }),
+  //   _.count_by,
+  //   console.log
+  // )
+
+  // 4. 특정인이 comment를 단 posts 거르기
+  _.go(
+    _.where(comments, { user_id: 105 }),
+    _.pluck('post_id'),
+    _.uniq,
+    function(post_ids) {
+      return _.filter(posts, function(post) {
+        return _.contains(post_ids, post.id);
+      });
+    },
+    console.log
+  )
+
+  // 5. users + posts + comments (index_by와 group_by로 효율 높이기)
+  // 코드를 효율적으로 짤 수 있도록 데이터 구조를 새로 짜보자~~
+  // _.extend({}, comment); // comment안에 {}의 모든 정보가 복사돼서 들어감
+
+  // index_by({}, 'key') // 해당 배열을 새로운 형태로 바꿔줌, 어떤 key를 기준으로 인덱싱을 해줄 것인가
+  var users2 = _.index_by(users, 'id'); // 해당하는 key로 1대1로 매핑되는 객체를 key-value 쌍으로 넣는 것
+  // console.log('users', users);
+  // console.log('users2', users2); // users.id를 key값으로 갖는 새로운 객체가 만들어짐
+
+  function find_user_by_id(user_id) {
+    return users2[user_id];
+    // return _.find(users, function(user) { 
+    //   return user.id == user_id; 
+    // })
+  }
+  // comments에 해당하는 user를 달아줌
+  // var comments2 = _.map(comments, function(comment) { 
+  //   return _.extend({
+  //     // user: _.find(users, function(user) { // comment의 갯수만큼 돌면서 user.id와 일치하는 것을 모두 찾아야 함 -> 중복적 순회 포함돼서 비효율적 코드 -> 함수를 따로 만들어서 해결해보자~
+  //     //   return user.id == comment.user_id;
+  //     // })
+  //     user: find_user_by_id(comment.user_id)
+  //   }, 
+  //   comment);
+  // })
+
+  // group_by // 해당하는 값으로 key를 기준으로 배열로 만드는 것 
+  var comments2 = _.go(
+    comments,
+    _.map(function(comment) { 
+      return _.extend({
+        user: find_user_by_id(comment.user_id)
+      }, 
+      comment);
+    }),
+    _.group_by('post_id') // post_id를 기준으로 그룹으로 묶어줌, posts3 에서 1대1 매칭 안해도 되게 만들기 위해
+  );
+
+  console.log('comments2', comments2);
+
+  // posts에 해당 comment를 달아줌
+
+  // var posts3 = _.map(posts, function(post) { 
+  //   return _.extend({
+  //     comments: comments2[post.id], // 1대1 매칭을 할 필요가 없음
+  //     // comments: _.filter(comments2, function(comment) {
+  //     //   return comment.post_id == post_id;
+  //     // }),
+  //     user: find_user_by_id(post.user_id)
+  //   }, 
+  //   post);
+  // })
+  
+  var posts2 = _.go(
+    posts, 
+    _.map(function(post) { 
+      return _.extend({
+        comments: comments2[post.id] || [], 
+        user: users2[post.user_id]
+        // user: find_user_by_id(post.user_id)
+      }, 
+      post);
+    }),
+  )
+
+  var posts3 = _.group_by(posts2, 'user_id');
+
+  console.log('posts3', posts3);
+
+  var users3 = _.map(users2, function(user) { // users2는 array가 아니라 obj -> 객체여도 for 돌면서 찾을 수 있음 (함수형) -> map을 사용할 수 있음
+    return _.extend({
+      posts: posts3[user.id] || [],
+      // posts: _.filter(posts3, function(post) {
+      //   return post.user_id == user.id;
+      // }),
+    }, user);
+  });
+  console.log(users3);
+
+  // _.each(users2, function(user) { // 값을 직접 변경하면 user - post - user - post .... 계속 재귀적으로 반복되는 문제 생김 
+  //   user.posts = _.filter(posts3, function(post) {
+  //     return post.user_id == user.id;
+  //   })
+  // })
+  // console.log(users2);
+
+  // 5.1. 특정인의 posts의 모든 comments 거르기
+  var user = users3[0];
+  // _.go(user.posts,
+  //   _.pluck('comments'),
+  //   _.flatten,
+  //   console.log
+  // );
+
+  // _.go(user,
+  //   _.deep_pluck('posts.comments'),
+  //   console.log
+  // );
+
+  console.log(_.deep_pluck(user, 'posts.comments'),);
+
+  // 5.2. 특정인의 posts에 comments를 단 친구의 이름들 뽑기
+  // _.go(user.posts,
+  //   _.pluck('comments'),
+  //   _.flatten,
+  //   _.pluck('user'),
+  //   _.pluck('name'),
+  //   _.uniq,
+  //   console.log
+  // );
+  console.log(_.uniq(_.deep_pluck(user, 'posts.comments.user.name')));
+
+  // 5.3. 특정인의 posts에 comments를 단 친구들 카운트 정보
+  console.log(_.count_by(_.deep_pluck(user, 'posts.comments.user.name')));
+  
+  // 5.4. 특정인이 comment를 단 posts 거르기
+  console.log(
+    _.filter(posts2, function(post) {
+      return _.find(post.comments, function(comment) {
+        return comment.user_id == 105;    
+      })
+    })
+  );
+
+  </script>
+</body>
+</html>

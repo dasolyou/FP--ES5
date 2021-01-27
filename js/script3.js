@@ -9,39 +9,6 @@
 // 대표함수는 가장 추상적, 다른 특화함수는 대표함수를 이용해 만들어짐
 
 /////////////////////////////////
-
-function _pipe() {
-  var fns = arguments; 
-  return function(arg) {
-    return _reduce(fns, function(arg, fn) { 
-      return fn(arg);
-    }, arg);
-  }
-}
-
-function _go(arg) { 
-  var fns = _rest(arguments); 
-  return _pipe.apply(null, fns)(arg);
-}
-
-var slice = Array.prototype.slice;
-function _rest(list, num) {
-  return slice.call(list, num || 1);
-}
-
-var _pairs = _map((val, key) => [key, val]);
-
-function _reduce(list, iter, memo) { 
-  if (arguments.length == 2) { 
-    memo = list[0];
-    list = _rest(list);
-  }
-  _each(list, function(val) {
-    memo = iter(memo, val);    
-  });
-  return memo;
-}
-
 function _curry(fn) {
   return function(a, b) {
     return arguments.length == 2 ? fn(a, b) : function(b) { return fn(a, b); };
@@ -68,6 +35,78 @@ function _filter(list, predi) {
   return new_list; 
 }
 
+function _map(list, mappper) {
+  var new_list = [];
+  _each(list, function(val, key) {
+    new_list.push(mappper(val, key));
+  });
+  return new_list;
+}
+
+function _is_object(obj) {
+  return typeof obj == 'object' && !!obj;
+}
+function _keys(obj) {
+  return _is_object(obj) ? Object.keys(obj) : [];
+}
+
+var _length = _get('length');
+
+function _each(list, iter) { 
+  var keys = _keys(list);
+  for (var i = 0, len = keys.length; i < len; i++) {
+    iter(list[keys[i]], keys[i]);
+  }
+  return list;
+}  
+
+var _map = _curryr(_map),
+  _each = _curryr(_each),
+  _filter = _curryr(_filter);
+
+var _pairs = _map((val, key) => [key, val]);
+
+var slice = Array.prototype.slice;
+function _rest(list, num) {
+  return slice.call(list, num || 1);
+}
+
+function _reduce(list, iter, memo) { 
+  if (arguments.length == 2) { 
+    memo = list[0];
+    list = _rest(list);
+  }
+  _each(list, function(val) {
+    memo = iter(memo, val);    
+  });
+  return memo;
+}
+
+function _pipe() {
+  var fns = arguments; 
+  return function(arg) {
+    return _reduce(fns, function(arg, fn) { 
+      return fn(arg);
+    }, arg);
+  }
+}
+
+function _go(arg) { 
+  var fns = _rest(arguments); 
+  return _pipe.apply(null, fns)(arg);
+}
+
+var _values = _map(_identity); 
+
+function _identity(val) {
+  return  val;
+}
+
+var _pluck = _curry(function(data, key) {
+  return _map(data, _get(key)); 
+  // return _map(data, function(obj) { return obj[key]; })
+})
+
 function _negate(func) {
   return function(val) {
     return !func(val);
@@ -81,39 +120,12 @@ var _reject = _curryr(function(data, predi) {
 
 var _compact = _filter(_identity);
 
-function _map(list, mappper) {
-  var new_list = [];
-  _each(list, function(val, key) {
-    new_list.push(mappper(val, key));
-  });
-  return new_list;
-}
-
-function _identity(val) {
-  return  val;
-}
-
-var _values = _map(_identity); 
-
-function _pluck(data, key) {
-  return _map(data, _get(key)); 
-  // return _map(data, function(obj) { return obj[key]; })
-}
-
-function _is_object(obj) {
-  return typeof obj == 'object' && !!obj;
-}
-function _keys(obj) {
-  return _is_object(obj) ? Object.keys(obj) : [];
-}
-
 var _find = _curryr(function(list, predi) {
   var keys = _keys(list);
   for (var i = 0, len = keys.length; i < len; i++) {
     var val = list[keys[i]];
     if (predi(val)) return val;
   } 
-  //for문을 도는 동안 못 찾으면 undifined
 }); 
 
 var _find_index = _curryr(function(list, predi) {
@@ -184,18 +196,9 @@ var _count_by = _curryr(function(data, iter) {
   }, {});
 })
 
-var _length = _get('length');
-
-function _each(list, iter) { 
-  var keys = _keys(list);
-  for (var i = 0, len = keys.length; i < len; i++) {
-    iter(list[keys[i]], keys[i]);
-  }
-  return list;
-}  
-
-var _map = _curryr(_map),
-  _filter = _curryr(_filter);
+var _head = function(list) {
+  return list[0];
+};
 
 //////////////////////////////////////
 

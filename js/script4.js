@@ -1,10 +1,3 @@
-// 1. 수집하기 - map, values, pluck 등
-// 2. 거르기 - filter, reject, compact, without 등
-// 3. 찾아내기 - find, some, every 등
-// 4. 접기 - reduce, min, max, group_by, count_by
-
-/////////////////////////////////
-
 function _curry(fn) {
   return function(a, b) {
     return arguments.length == 2 ? fn(a, b) : function(b) { return fn(a, b); };
@@ -93,11 +86,11 @@ function _go(arg) {
 }
 
 // 1. 수집하기 - map, values, pluck 등
+var _values = _map(_identity); 
+
 function _identity(val) {
   return  val;
 }
-
-var _values = _map(_identity); 
 
 var _pluck = _curry(function(data, key) {
   return _map(data, _get(key)); 
@@ -191,3 +184,16 @@ var _count_by = _curryr(function(data, iter) {
 var _head = function(list) {
   return list[0];
 };
+
+///////////////////////////////////////
+
+
+
+// 지연 평가를 시작 시키고 유지 시키는(이어 가는) 함수
+  // 1. map
+  // 2. filter, reject
+  
+
+// 끝을 내는 함수
+  // 1. take
+  // 2. some, every, find
